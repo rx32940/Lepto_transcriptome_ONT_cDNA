@@ -16,7 +16,8 @@ import pandas as pd
 
 trans_cov=sys.argv[1]
 cov_pd = pd.read_csv(trans_cov, sep="\t", header=None)
-trans_max_cov = cov_pd.groupby(0, as_index=False)[4].max() # group by transcript name, find max cov
+trans_max_cov = cov_pd.groupby(3, as_index=False)[11].max() # group by transcript name, find max cov
+trans_max_cov.iloc[:, 0] = trans_max_cov.iloc[:, 0].str[4:]
 trans_max_cov.to_csv(sys.argv[2], sep="\t", index=False, header=False)
 
 
