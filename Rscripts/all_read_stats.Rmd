@@ -1,0 +1,1360 @@
+---
+title: "full_length_cDNA_read"
+author: "Rachel Xu"
+date: '2022-08-25'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+main_path <- "/Users/rx32940/Dropbox/5.Rachel-projects/Transcriptomics_PolyATail/manuscript/cdna/Lepto_transcriptome_ONT_cDNA"
+fig_path <- file.path(main_path, "4.figures")
+input_path <- file.path(main_path, "1.reports", "fl_stats")
+table_path <- file.path(main_path, "5.tables")
+
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+```
+
+```{r}
+
+# fl_stats_files <- list.files(input_path,pattern = "*.withClip.anot.stats", full.names = TRUE)
+# fl_stats_files <- fl_stats_files[!grepl("Mankarso",fl_stats_files)]
+# non_fl_stats <- list.files(input_path,pattern = "*PolyATail.anot.raw.stats", full.names = TRUE)
+# non_fl_stats <- non_fl_stats[!grepl("Mankarso",non_fl_stats)]
+# rna_files <- list.files(input_path, pattern = "Q29*", full.names = TRUE)
+# 
+#  x <- rna_files[1]
+# read_stats <- function(x){
+#   s <- read.csv(x, sep="\t", header = FALSE) 
+#   colnames(s) <- c("chrom", "map_start", "map_end", "readid", "NM", "map_strand", "cigar", "map_score", "gene_mapped", "gene_start", "gene_end", "gene_strand", "biotype", "transcript_id", "gene_name", "map_position")
+#   
+#   s1 <- s %>% separate("map_score", into = c("align_len", "map_identity", "num_Ngap", "len_Ngap"), sep="[|]", convert=TRUE) %>% mutate(is.longgap = ifelse(num_Ngap == 0, "no", "yes")) %>% 
+#     mutate(map_strandness = mapply(function(x,y,z){
+#       if(grepl("operon",z)){
+#         s <- unlist(strsplit(x, "|", fixe=TRUE))
+#         s1 <- unlist(strsplit(y, "|", fixe=TRUE))
+#         if(all(s == s1)){"same"}else if(TRUE %in% (s == s1)){"both"}else{"opposite"}
+#       }else{
+#         ifelse(x == y, "same", "opposite")
+#       }
+#       }, map_strand, gene_strand, map_position)) %>% 
+#     mutate(name=switch(
+#     unlist(strsplit(basename(x), split=".", fixed=TRUE))[1],
+#     LIC_NOPOLYA = "LIC-DRS-nonpolyA",
+#     LIC_POLYA_DRNA_CDNA = "LIC-DRS-cDNA-polyA",
+#     LIC_POLYA = "LIC-DRS-polyA",
+#     `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail_Qiagen` = "LIC-cDNA-nonpolyA_Q",
+#     `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIC-cDNA-nonpolyA",
+#     `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIC-cDNA-polyA",
+#     `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LII-cDNA-nonpolyA",
+#     `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LII-cDNA-polyA",
+#     `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIM-cDNA-nonpolyA",
+#     `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIM-cDNA-polyA",
+#     `Patoc_Basecalled_Aug_16_2019_Direct-cDNA-NoPolyATail` = "LBP-cDNA-nonpolyA",
+#     `Patoc_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LBP-cDNA-polyA",
+#     `Q29_Copenhageni_Direct-RNA_FAST5_Pass`="LIC-DRS-nonpolyA-R1",
+#     `Q29_Copenhageni_Direct-RNA_Repeat_FAST5_Pass`="LIC-DRS-nonpolyA-R2",
+#     ""
+# )) %>% separate(name, into = c("strain", "cDNA", "is.polyA"), remove = FALSE) 
+#   s1 
+# }
+# # t1 <- read_stats(x)
+# # unique(t1$map_strandness)
+# # t1 %>% subset(grepl("operon", map_position))
+# 
+# fl_stat_dfs <- lapply(fl_stats_files, read_stats)
+# raw_stat_dfs <- lapply(non_fl_stats, read_stats)
+# drna_stats_dfs <- lapply(rna_files, read_stats)
+# 
+# stat_df_all <- do.call(rbind, fl_stat_dfs)
+# raw_df_all <- do.call(rbind, raw_stat_dfs)
+# drna_df_all <- do.call(rbind, drna_stats_dfs)
+# 
+# stat_df_all$map_strandness <- factor(stat_df_all$map_strandness, levels = c("same", "opposite", "both"))
+# stat_df_all$name <- factor(stat_df_all$name, levels=c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA","LII-cDNA-polyA","LIM-cDNA-nonpolyA","LIM-cDNA-polyA","LBP-cDNA-nonpolyA","LBP-cDNA-polyA"))
+# stat_df_all$is.fl <- "full-length"
+# 
+# raw_df_all$map_strandness <- factor(raw_df_all$map_strandness, levels = c("same", "opposite", "both"))
+# raw_df_all$name <- factor(raw_df_all$name, levels=c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA","LII-cDNA-polyA","LIM-cDNA-nonpolyA","LIM-cDNA-polyA","LBP-cDNA-nonpolyA","LBP-cDNA-polyA"))
+# raw_df_all$is.fl <- "raw"
+# 
+# drna_df_all$map_strandness <- factor(drna_df_all$map_strandness, levels = c("same", "opposite", "both"))
+# drna_df_all$name <- factor(drna_df_all$name, levels=c("LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2"))
+# drna_df_all$is.fl <- "DRS"
+# drna_df_all$is.polyA <- "nonpolyA"
+# 
+# combine_raw_filter <- rbind(stat_df_all, raw_df_all, drna_df_all)
+# 
+# 
+# write.csv(combine_raw_filter, file.path(table_path, "raw_FL_cDNA_DRS_summary_statistics_combined_noLim.csv"), row.names=FALSE, quote=FALSE)
+```
+
+# START workflow:
+```{r}
+combine_raw_filter <- read.csv(file.path(table_path, "raw_FL_cDNA_DRS_summary_statistics_combined_noLim.csv"))
+
+```
+
+
+# Average map quality
+```{r}
+
+combine_raw_filter %>% group_by(is.fl) %>% summarise(mean(map_identity))
+
+map_identity <- combine_raw_filter %>% group_by(is.fl, is.polyA, name) %>% summarise(avg_map_identity = mean(map_identity))
+
+
+map_identity$sample_type <- ifelse(map_identity$is.fl == "DRS", "DRS", "cDNA")
+map_identity %>% group_by(is.fl) %>% summarise(mean(avg_map_identity))
+# write.csv(map_identity, file.path(table_path, "map", "TableS1.map_identities.csv"))
+```
+# raw vs FL mapped reads
+```{r}
+mapOnlyInRaw <- read.csv(file.path(main_path, "1.reports","raw_vs_fl", "combined_diff_map_raw_fl.txt"), header = FALSE, col.names = c("readid"))
+
+all_raw_mapped <- combine_raw_filter %>% subset(is.fl=="raw")
+
+mapOnlyInRaw_anot <- left_join(mapOnlyInRaw, all_raw_mapped, by="readid")
+
+mapOnlyInRaw_anot %>% group_by(gene_name) %>% summarise(num_reads = n_distinct(readid)) %>% arrange(desc(num_reads))
+```
+# pychopper primer
+```{r}
+primer_df <- read.csv(file.path(main_path, "1.reports", "pychopper", "aln_pychopper_trimmed_len.csv")) %>% subset(sample  != "Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail_Qiagen" & !grepl("Mankarso", sample)) 
+
+primer_df$name <- sapply(primer_df$sample, function(x){switch(
+    x,
+    LIC_NOPOLYA = "LIC-DRS-nonpolyA",
+    LIC_POLYA_DRNA_CDNA = "LIC-DRS-cDNA-polyA",
+    LIC_POLYA = "LIC-DRS-polyA",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail_Qiagen` = "LIC-cDNA-nonpolyA_Q",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIC-cDNA-nonpolyA",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIC-cDNA-polyA",
+    `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LII-cDNA-nonpolyA",
+    `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LII-cDNA-polyA",
+    `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIM-cDNA-nonpolyA",
+    `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIM-cDNA-polyA",
+    `Patoc_Basecalled_Aug_16_2019_Direct-cDNA-NoPolyATail` = "LBP-cDNA-nonpolyA",
+    `Patoc_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LBP-cDNA-polyA",
+    `Q29_Copenhageni_Direct-RNA_FAST5_Pass`="LIC-DRS-nonpolyA-R1",
+    `Q29_Copenhageni_Direct-RNA_Repeat_FAST5_Pass`="LIC-DRS-nonpolyA-R2",
+    "")})
+
+primer_df <- primer_df %>% select(-sample)
+
+primer_df$name <- factor(primer_df$name, levels=c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA","LII-cDNA-polyA","LIM-cDNA-nonpolyA","LIM-cDNA-polyA","LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2")) 
+
+ggplot(primer_df %>% subset(primer=="SSP"), aes(x = name, y = num_primers, fill=order)) +
+  geom_bar(stat="identity", position = "fill")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Dark2")[c(7,5)])
+# ggsave(file.path(fig_path, "pychopper", "cDNA_read_order_percentage.tiff"), dpi=500)
+
+
+primer_df.1 <- primer_df %>% separate(name, into=c("strain", "cDNA", "isPolyA"), sep="-", remove=FALSE)
+primer_df.1$strain <- factor(primer_df.1$strain, levels=c("LIC", "LII", "LIM","LBP"))
+primer_df.1$isPolyA <- factor(primer_df.1$isPolyA, levels=c("nonpolyA", "polyA"))
+
+ggplot(primer_df.1, aes(x = isPolyA, y = avg_trim_len, fill=isPolyA)) +
+  geom_bar(stat="identity", position = "dodge")+
+  facet_grid(primer ~strain)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  labs(x="Whether the sample polyadenylated", y = "Average pychopper trimmed off length (bps)")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired"))
+ggsave(file.path(fig_path, "pychopper", "average_trimmed_length.tiff"), dpi=500, width = 7, height = 5)
+
+ggplot(primer_df.1, aes(x = isPolyA, y = avg_Q, fill=isPolyA)) +
+  geom_bar(stat="identity", position = "dodge")+
+  facet_grid(primer ~strain)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  labs(x="Whether the sample polyadenylated", y = "Average mapped quality of the primer")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[c(9,10)])
+ggsave(file.path(fig_path, "pychopper", "average_primers_mapped_quality.tiff"), dpi=500, width = 7, height = 5)
+
+```
+
+
+# long gap
+```{r}
+longgap.fl <- combine_raw_filter %>% group_by(is.fl) %>% mutate(total_reads = n()) %>% group_by(is.fl, is.longgap) %>% summarise(count=n(), percentage = (n()/total_reads)*100, avg_len = mean(len_Ngap), avg_map_identity = mean(map_identity)) %>% distinct()
+
+longgap.fl
+
+longgap.isPolyA <- combine_raw_filter  %>% group_by(is.fl, is.polyA) %>% mutate(total_reads = n()) %>% group_by(is.fl, is.longgap, is.polyA) %>% summarise(count=n(), percentage = (n()/total_reads)*100, avg_len = mean(len_Ngap), avg_map_identity = mean(map_identity)) %>% distinct()
+
+longgap.isPolyA
+
+```
+
+```{r}
+# # write long gap reads to file
+# for(sample in unique(combine_raw_filter$name)){
+#   is.fl <-ifelse(unlist(strsplit(sample, "-", fixed = TRUE)[2] != "DRS"), "full-length", "DRS")
+#   cur_sample <- combine_raw_filter %>% subset(is.longgap == "yes" & is.fl == is.fl & name == sample)
+#   file_name <- switch(
+#     sample,
+#     "LIC-cDNA-nonpolyA" = "Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail",
+#     "LIC-cDNA-polyA" = "Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail",
+#     "LII-cDNA-nonpolyA" = "Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail" ,
+#     "LII-cDNA-polyA" = "Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail",
+#      "LIM-cDNA-nonpolyA" = "Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail",
+#     "LIM-cDNA-polyA" = "Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail" ,
+#     "LBP-cDNA-nonpolyA" = "Patoc_Basecalled_Aug_16_2019_Direct-cDNA-NoPolyATail" ,
+#     "LBP-cDNA-polyA" = "Patoc_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail" ,
+#     "LIC-DRS-nonpolyA-R1" = "Q29_Copenhageni_Direct-RNA_FAST5_Pass",
+#     "LIC-DRS-nonpolyA-R2" = "Q29_Copenhageni_Direct-RNA_Repeat_FAST5_Pass",
+#     ""
+# )
+# write.table(cur_sample, file.path(main_path, "5.tables", "longGapReads",paste0(file_name, ".FL.bed")), sep="\t", quote=FALSE, row.names = FALSE)
+# }
+```
+# Basic mapping statistics
+
+## Number of reads Before and After Filtering (pychopper)
+```{r}
+
+map_read_n_fl <- stat_df_all %>% group_by(name) %>% summarise(map_FL_cDNA = n_distinct(readid)) 
+map_read_n_raw <-raw_df_all %>% group_by(name) %>% summarise(map_raw_cDNA = n_distinct(readid)) # number of total reads
+map_read_n_drna <-drna_df_all %>% group_by(name) %>% summarise(map_DRS = n_distinct(readid)) # number of total reads
+
+# n_raw <- as.data.frame(list(name = c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA", "LII-cDNA-polyA", "LIM-cDNA-nonpolyA", "LIM-cDNA-polyA", "LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2"), total_reads=c( 199615,  647339, 317151,  512875,78425,632738,516304,703577,1622692, 483847)))
+# n_filter <- as.data.frame(list(name = c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA", "LII-cDNA-polyA", "LIM-cDNA-nonpolyA", "LIM-cDNA-polyA", "LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2"), num_FL_cDNA=c( 29821,  365534, 41000,  249622,6331,268261,40006,312858, 0,0)))
+
+n_raw <- as.data.frame(list(name = c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA", "LII-cDNA-polyA",  "LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2"), total_reads=c( 199615,  647339, 317151,  512875,516304,703577,1622692, 483847)))
+n_filter <- as.data.frame(list(name = c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA", "LII-cDNA-polyA",  "LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2"), num_FL_cDNA=c( 29821,  365534, 41000,  249622,40006,312858, 0,0)))
+
+read_stats <- Reduce(full_join, list(n_raw, n_filter, map_read_n_raw, map_read_n_fl, map_read_n_drna))
+read_stats.1 <- read_stats %>% pivot_longer(cols = c("total_reads","map_raw_cDNA", "num_FL_cDNA","map_FL_cDNA", "map_DRS"), names_to = "stats", values_to = "Read.count")
+
+
+read_stats.1$name <- factor(read_stats.1$name, levels=c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA","LII-cDNA-polyA","LIM-cDNA-nonpolyA","LIM-cDNA-polyA","LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2"))
+read_stats.2 <- read_stats.1 %>% separate(col = "name", sep="-",into = c("serovar", "method", "polyA", "replicates"), remove = FALSE)
+
+read_stats.1 %>% subset(!is.na(Read.count) & !grepl("DRS", name)) %>% pivot_wider(names_from = "stats", values_from = "Read.count") %>% group_by(name) %>% mutate(per.raw.mapped=(map_raw_cDNA/total_reads)*100) %>% mutate(per.FL.mapped=(map_FL_cDNA/num_FL_cDNA)*100) #%>% ungroup() %>% summarise(mean(per.FL.mapped))
+```
+
+
+```{r}
+read_stats.3 <- read_stats.2 %>% subset(method=="cDNA") %>% subset(stats != "map_DRS")
+read_stats.3$stats <- factor(read_stats.3$stats, levels=c("total_reads","map_raw_cDNA",  "num_FL_cDNA","map_FL_cDNA"))
+
+ggplot(read_stats.3, aes(x = name, y= Read.count, fill=stats))+
+  geom_bar(stat="identity", position = "dodge")+
+  facet_wrap(~method)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Number of Reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[c(1:5)])
+ggsave(file.path(fig_path, "map", "map_read_vs_full_length_read_summary_cDNA.tiff"), dpi=500, height = 6, width = 8)
+
+read_stats.4 <- read_stats.2 %>% subset(method=="DRS") %>% subset(Read.count != 0)
+read_stats.4$stats <- factor(read_stats.4$stats, levels=c("total_reads", "map_DRS"))
+
+ggplot(read_stats.4 , aes(x = name, y= Read.count, fill=stats))+
+  geom_bar(stat="identity", position = "dodge")+
+  facet_wrap(~method)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Number of Reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[c(1,5)])
+# ggsave(file.path(fig_path, "map", "map_read_vs_full_length_read_summary_DRS.tiff"), dpi=500, height = 6, width = 5)
+
+test <- raw_df_all %>% subset(name == "LIC-cDNA-nonpolyA" )
+length(unique(test$readid))
+```
+
+
+## Biotypes of genes mapped 
+```{r}
+
+biotype.mapped <- combine_raw_filter %>% 
+  subset(!grepl("operon", map_position)) %>% group_by(name, is.fl) %>% mutate(total_reads=n())%>% group_by(name, biotype, is.fl) %>% summarise(number.read.mapped=n(), percent.read.mapped=n()/total_reads*100) %>% distinct() %>% pivot_longer(cols = c("number.read.mapped", "percent.read.mapped"), names_to = "stats", values_to = "values") %>% mutate(biotype = sapply(biotype, function(x){
+  ifelse(x == "CDS", "mRNA", x)
+}))
+
+biotype.mapped %>% subset(!grepl("DRS", name))%>% group_by(is.fl,stats, biotype) %>% summarise(mean(values))
+
+biotype.mapped.1 <- biotype.mapped %>% mutate(read.types = sapply(is.fl,function(x){
+  ifelse(x == "raw", "raw_cDNA", ifelse(x == "full-length", "FL_cDNA", x))
+}))
+
+biotype.mapped.1$read.types <- factor(biotype.mapped.1$read.types, levels = c("raw_cDNA", "FL_cDNA", "DRS"))
+
+p1 <- ggplot(biotype.mapped.1 %>% subset(read.types %in% c("raw_cDNA", "FL_cDNA")), aes(x=name, y=values,fill=biotype))+
+  geom_bar(stat="identity")+
+  facet_grid(stats~read.types, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Count/percentage of reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[1:7])
+p1
+
+ggsave(file.path(fig_path, "map", "cDNA_reads_map_to_biotypes.tiff"), p1,dpi=500, width = 9, height = 9)
+
+p2 <- ggplot(biotype.mapped.1 %>% subset(read.types %in% c("DRS")), aes(x=name, y=values,fill=biotype))+
+  geom_bar(stat="identity")+
+  facet_grid(stats~read.types, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Count/percentage of reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[1:7])
+p2
+
+# ggsave(file.path(fig_path, "map", "DRS_reads_map_to_biotypes.tiff"), p2,dpi=500, width = 5, height = 9)
+
+biotype.mapped %>% separate(name, into = c("strain", "method", "is.polyA", "replicates")) %>% subset(stats == "percent.read.mapped") %>% group_by(is.fl, biotype, is.polyA, method) %>% summarise(avg_perc=mean(values))
+
+```
+
+## unique number of RNA mapped
+```{r}
+unique(combine_raw_filter$cDNA)
+unique_gene_mapped <- combine_raw_filter %>% subset(!grepl("operon",map_position)) %>% group_by(is.fl, is.polyA, strain, cDNA, name) %>% summarise(mapped=n_distinct(gene_mapped))
+
+unique_gene_mapped.1 <- unique_gene_mapped %>% mutate(annotated = sapply(strain, function(x){
+  ifelse(x == "LIC", 3734, ifelse(x %in% c("LII", "LIM"), 4057, 3714))
+}))
+
+unique_gene_mapped.longer <- unique_gene_mapped.1 %>% pivot_longer(c("mapped", "annotated"), names_to = "genes", values_to = "count")
+
+unique_gene_mapped.longer.1 <- unique_gene_mapped.longer %>% mutate(read.types = sapply(is.fl,function(x){
+  ifelse(x == "raw", "raw_cDNA", ifelse(x == "full-length", "FL_cDNA", x))
+}))
+unique_gene_mapped.longer.1$read.types <- factor(unique_gene_mapped.longer.1$read.types, levels=c("raw_cDNA", "FL_cDNA", "DRS"))
+unique_gene_mapped.longer.1$strain <- factor(unique_gene_mapped.longer.1$strain, levels=c("LIC", "LII", "LIM", "LBP"))
+unique_gene_mapped.longer.1$genes <- factor(unique_gene_mapped.longer.1$genes, levels=c("annotated", "mapped"))
+unique_gene_mapped.longer.1$is.polyA <- factor(unique_gene_mapped.longer.1$is.polyA, levels=c("nonpolyA", "polyA"))
+
+
+p1 <- ggplot(unique_gene_mapped.longer.1 %>% subset(read.types %in% c("raw_cDNA", "FL_cDNA")), aes(x = name, y = count, fill=genes))+
+  geom_bar(stat="identity", position = "dodge")+
+  geom_text(aes(label=count),position = position_dodge(width = .9),vjust=-0.2)+
+  facet_grid(read.types~strain, scales = "free")+
+    theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=10), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(limits = c(0,4300), breaks = seq(0,4300,1000))+
+  labs(x="Samples", y = "Number of annotated CDS mapped at least once")
+p1
+ggsave(file.path(fig_path, "map", "cDNA_unique_number_of_genes_mapped.tiff"), p1,dpi=500, width = 15, height = 8)
+
+
+
+p2 <- ggplot(unique_gene_mapped.longer.1 %>% subset(read.types %in% c("DRS")), aes(x = name, y = count, fill=genes))+
+  geom_bar(stat="identity", position = "dodge")+
+  geom_text(aes(label=count),position = position_dodge(width = .9),vjust=-0.2)+
+  facet_grid(read.types~strain, scales = "free_y")+
+    theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=10), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(limits = c(0,4300), breaks = seq(0,4300,1000))+
+  labs(x="Samples", y = "Number of annotated CDS mapped at least once")
+p2
+# ggsave(file.path(fig_path, "map", "DRS_unique_number_of_genes_mapped.tiff"), p2,dpi=500, width = 6, height = 6)
+
+# 3629/3734 
+# 3738/4057
+# 3820/4057
+# 3602/3714
+# 
+# 3293/3734 
+# 1849/4057
+# 2183/4057
+# 2113/3714
+# 
+# 2851/3734
+```
+
+## read map position Distribution
+```{r}
+
+reads_distr <-combine_raw_filter %>% mutate(map_position = sapply(map_position, function(x){
+  ifelse(grepl("operon", x), "operons", x)
+}))%>% group_by(is.fl, map_position,name) %>% summarise(count=n())
+
+reads_distr_per <- reads_distr %>% group_by(is.fl, name) %>% mutate(total_reads = sum(count)) %>% mutate(percentage = (count/total_reads)*100) %>% select(-total_reads) %>% pivot_longer(cols = c(count, percentage), names_to = "stats", values_to = "values")
+
+
+reads_distr_per.1 <- reads_distr_per %>% mutate(read.types = sapply(is.fl,function(x){
+  ifelse(x == "raw", "raw_cDNA", ifelse(x == "full-length", "FL_cDNA", x))
+}))
+
+reads_distr_per.1$read.types <- factor(reads_distr_per.1$read.types, levels = c("raw_cDNA", "FL_cDNA", "DRS"))
+reads_distr_per.1$stats <- factor(reads_distr_per.1$stats, levels = c("count", "percentage"))
+reads_distr_per.1$name <- factor(reads_distr_per.1$name, levels=c("LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA","LII-cDNA-polyA","LIM-cDNA-nonpolyA","LIM-cDNA-polyA","LBP-cDNA-nonpolyA","LBP-cDNA-polyA", "LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2")) 
+
+
+ggplot(reads_distr_per.1, aes(x=name,y=values, fill = map_position))+
+  geom_bar(stat="identity")+
+  facet_wrap(stats~read.types, scales = "free")+
+    theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Count/percentage of mapped reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired"))
+
+ggsave(file.path(fig_path, "map", "map_read_vs_full_length_read_map_position_composition_barplot.tiff"), dpi=500, height =10, width = 10)
+
+reads_distr_per %>% separate(name, into = c("serovar", "protocols","is.polyA", "replicates"), sep="-" , remove = FALSE)  %>% subset(stats == "percentage") %>% group_by(is.fl, map_position, is.polyA) %>% summarise(mean(values))
+```
+
+## map position explore by gene length intervals
+```{r}
+
+nonoperon <- combine_raw_filter%>% subset(!grepl("operon", map_position))
+
+nonoperon$gene_start <- as.numeric(nonoperon$gene_start)
+nonoperon$gene_end <- as.numeric(nonoperon$gene_end)
+
+
+combine_raw_filter_bin <- nonoperon %>% mutate(gene_len = gene_end - gene_start + 1)%>%
+  mutate(aligned_percentage = round(align_len/gene_len,2))%>%
+  mutate(gene_len_intervals = cut(gene_len, breaks = seq(min(gene_len)-1,max(gene_len)+1, 1000))) 
+
+combine_raw_filter_bin_summary <- combine_raw_filter_bin %>%
+  group_by(name, is.fl, gene_len_intervals, map_position) %>% summarise(count=n()) %>% subset(count != 0 & !is.na(gene_len_intervals))
+
+
+
+
+interval_percent <- combine_raw_filter_bin_summary%>% group_by(gene_len_intervals, name, is.fl) %>% mutate(total = sum(count))  %>% group_by(gene_len_intervals, name, is.fl, map_position) %>% summarise(percentage = sum(count)/total)
+
+interval_percent.1 <- interval_percent %>% mutate(read.types = sapply(is.fl,function(x){
+  ifelse(x == "raw", "raw_cDNA", ifelse(x == "full-length", "FL_cDNA", x))
+}))
+
+interval_percent.1$read.types <- factor(interval_percent.1$read.types,levels = c("raw_cDNA", "FL_cDNA", "DRS"))
+
+ggplot(interval_percent.1, aes(x = gene_len_intervals,y=percentage*100,fill=map_position))+
+  geom_bar(stat="identity")+
+  facet_wrap(read.types~name, scales="free_y", ncol = 8)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Percentage of read mapped", x="Gene length intervals")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Set2"))
+ggsave(file.path(fig_path, "map", "map_read_length_barplot.tiff"), dpi=500, height = 10, width = 25)
+
+# check complete mapping genes at different length interval
+combine_raw_filter_bin %>% subset( is.fl == "DRS" & map_position == "complete") %>% arrange(desc(gene_len)) #%>% group_by(gene_name, map_position, gene_len, is.polyA) %>% summarise(n()) %>% arrange(desc(gene_len))
+```
+
+
+## Number of reads mapped to the same/ or opposite strand of their mapped gene
+```{r}
+ 
+map_strandness <- combine_raw_filter  %>% group_by(name, map_strandness, is.fl) %>% summarise(number=n()) %>% group_by(name, is.fl) %>% mutate(total_read = sum(number)) %>% mutate(per_same_strand=number/total_read*100)
+map_strandness %>% group_by(map_strandness, is.fl)%>% summarise(mean(per_same_strand))
+
+
+map_strandness.1 <- map_strandness %>% mutate(read.types = sapply(is.fl,function(x){
+  ifelse(x == "raw", "raw_cDNA", ifelse(x == "full-length", "FL_cDNA", x))
+}))
+map_strandness.1$read.types <- factor(map_strandness.1$read.types, levels = c("raw_cDNA", "FL_cDNA", "DRS"))
+
+library(ggplot2)
+library(scales)
+ggplot(map_strandness.1 , aes(x = name, y= per_same_strand, fill= map_strandness))+
+  geom_bar(stat="identity")+
+  facet_wrap(~read.types, scales = "free") +
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Percentage of reads mapped", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[c(1,3,2)])
+
+ggsave(file.path(fig_path, "map", "proportion_full_length_read_map_strandness.tiff"), dpi=500, width = 8, height = 5)
+```
+
+## which gene did opposite reads mapped to?
+```{r}
+
+most_opposite_map_genes <- combine_raw_filter %>% subset(!grepl("operon", map_position)) %>% subset(is.fl %in% c("full-length", "DRS")) %>% subset(map_strandness == "opposite") %>% group_by(gene_name, name, map_position, is.fl) %>% summarise(count = n())%>% subset(gene_name != "")
+
+most_opposite_map_genes  %>% subset(gene_name == "IS110 family transposase")
+
+most_opposite_map_genes_top20 <- most_opposite_map_genes %>% group_by(name) %>% slice_max(count, n =20) %>% subset(gene_name != "hypothetical protein")
+
+
+percent <- most_opposite_map_genes_top20 %>% group_by(gene_name, name, is.fl) %>% mutate(total = sum(count))  %>% group_by(gene_name, name, is.fl, map_position) %>% summarise(percentage = sum(count)/total)
+
+percent$is.fl <- factor(percent$is.fl, levels = c("raw", "full-length", "DRS"))
+
+ggplot(percent, aes(x = gene_name, y = percentage, fill=map_position))+
+  geom_bar(stat="identity")+
+  facet_wrap(is.fl~name, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Percent of reads mapped to opposite of CDS", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired"))
+
+ggsave(file.path(fig_path, "map", "top_opposite_mapped_genes.tiff"), dpi=500, width = 20, height = 20)
+
+# most_opposite_map_genes <- combine_raw_filter %>% subset(!grepl("operon", map_position)) %>% subset(is.fl %in% c("full-length", "DRS")) %>% subset(map_strandness == "opposite") %>% group_by(gene_name, name, map_position, is.fl) %>% summarise(count = n())%>% subset(gene_name != "")
+
+```
+# position of oppositely mapped regions
+```{r}
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+opposite_mapped_reads <- combine_raw_filter %>% subset(!grepl("operon", map_position)) %>% subset(is.fl %in% c("full-length", "DRS")) %>% subset(map_strandness == "opposite") 
+
+combine_raw_filter %>% subset(map_position == "noncoding")%>% subset(is.fl %in% c("full-length", "DRS")) %>% group_by(map_strandness, name, gene_mapped)  %>% summarise(n())
+opposite_mapped_reads %>% group_by(name, gene_mapped, map_position, is.fl, gene_name) %>% summarise(mode_Mapstart = getmode(map_start),mode_Mapend = getmode(map_end))
+
+```
+
+
+# Read HTSeq
+
+### process HTSeq
+```{r}
+
+htseq.files <- list.files(file.path(main_path, "1.reports", "htseq"), pattern = "*.txt", full.names = TRUE, recursive = TRUE)
+
+htseq.files <- htseq.files[!grepl("Mankarso", htseq.files)]
+
+htseq.files <- htseq.files[grepl("Q29",htseq.files) | grepl("PolyATail.txt",htseq.files) ]
+
+read_htseq <- function(x){
+  df <- read.csv(x, sep="\t", header=FALSE, col.names = c("ID", "gene_name", "read_count")) %>% separate("ID", into=c("cds", "gene_id"), sep="-" , extra= "merge")  %>% select(-cds) %>% 
+    mutate(name=switch(
+    unlist(strsplit(basename(x), split=".", fixed=TRUE))[1],
+    LIC_NOPOLYA = "LIC-DRS-nonpolyA",
+    LIC_POLYA_DRNA_CDNA = "LIC-DRS-cDNA-polyA",
+    LIC_POLYA = "LIC-DRS-polyA",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail_Qiagen` = "LIC-cDNA-nonpolyA_Q",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIC-cDNA-nonpolyA",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIC-cDNA-polyA",
+    `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LII-cDNA-nonpolyA",
+    `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LII-cDNA-polyA",
+    `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIM-cDNA-nonpolyA",
+    `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIM-cDNA-polyA",
+    `Patoc_Basecalled_Aug_16_2019_Direct-cDNA-NoPolyATail` = "LBP-cDNA-nonpolyA",
+    `Patoc_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LBP-cDNA-polyA",
+    `Q29_Copenhageni_Direct-RNA_FAST5_Pass`="LIC-DRS-nonpolyA-R1",
+    `Q29_Copenhageni_Direct-RNA_Repeat_FAST5_Pass`="LIC-DRS-nonpolyA-R2",
+    ""
+)) 
+  str_ls <- unlist(strsplit(x, "/", fixed=TRUE))
+  df$is.fl <- str_ls[length(str_ls)-1]
+  df
+}
+
+combined_htseq <- do.call(rbind,lapply(htseq.files,read_htseq))
+
+
+LIC_ref <- read.csv(file.path(main_path, "7.reference", "GCF_000007685.1_ASM768v1_genomic.gff"), skip = 9, sep="\t", header = FALSE) %>% subset(V3 == "CDS") %>% separate(V9, sep="product=", into=c("before", "after"), remove = FALSE)%>% separate(after, sep=";", into=c("gene_name", "after"), extra = "drop")%>% separate(V9, into = c("ID=","others"), sep="[;]", extra = "drop") %>% separate(`ID=`, into = c("ID=","gene_id"), sep="[-]", extra = "merge") %>% select(-c("ID=", "others", "before", "after")) %>% mutate(geneLen = V5-V4 + 1) %>% distinct(gene_id,.keep_all = TRUE)
+LBP_ref <- read.csv(file.path(main_path, "7.reference", "GCF_000017685.1_ASM1768v1_genomic.gff"), skip = 9, sep="\t", header = FALSE) %>% subset(V3 == "CDS")%>% separate(V9, sep="product=", into=c("before", "after"), remove = FALSE)%>% separate(after, sep=";", into=c("gene_name", "after"), extra = "drop") %>% separate(V9, into = c("ID=","others"), sep="[;]", extra = "drop") %>% separate(`ID=`, into = c("ID=","gene_id"), sep="[-]", extra = "merge") %>% select(-c("ID=", "others", "before", "after")) %>% mutate(geneLen = V5-V4 + 1)%>% distinct(gene_id,.keep_all = TRUE)
+LIIM_ref <- read.csv(file.path(main_path, "7.reference", "GCF_014858895.1_ASM1485889v1_genomic.gff"), skip = 9, sep="\t", header = FALSE) %>% subset(V3 == "CDS")%>% separate(V9, sep="product=", into=c("before", "after"), remove = FALSE)%>% separate(after, sep=";", into=c("gene_name", "after"), extra = "drop") %>% separate(V9, into = c("ID=","others"), sep="[;]", extra = "drop") %>% separate(`ID=`, into = c("ID=","gene_id"), sep="[-]", extra = "merge") %>% select(-c("ID=", "others", "before", "after")) %>% mutate(geneLen = V5-V4 + 1)%>% distinct(gene_id,.keep_all = TRUE)
+
+```
+
+### normalize to TPM
+```{r}
+
+# data_type <- "DRS"
+# strain <- "LIC"
+# switch raw/FL herr
+get_tpm <- function(strain, data_type){
+  test <- combined_htseq %>% subset(is.fl == data_type & grepl(strain, name) & !is.na(gene_id))  %>% select(gene_id, read_count, name) %>% pivot_wider(names_from = "name", values_from = "read_count") %>% as.data.frame()
+  row_sub = apply(test[colnames(test) != "gene_id"], 1, function(row) all(row !=0 ))
+  test <- test[row_sub,]
+  if(strain %in% c("LII", "LIM")){ref = LIIM_ref}else if(strain == "LIC"){ref = LIC_ref}else{ref = LBP_ref}
+  test_anot <- left_join(test, ref, by="gene_id")
+  x <- test_anot[2]/test_anot$geneLen
+  y <- test_anot[3]/test_anot$geneLen
+  zdf <- data.frame(A = x, B = y)
+  colnames(zdf) <- colnames(test_anot[c(2,3)])
+  rownames(zdf) <- test_anot$gene_id
+  mat <- as.matrix(zdf)
+  tpm.mat <- t( t(mat) * 1e6 / colSums(mat) )
+  outdf <- as.data.frame(tpm.mat) %>% mutate(gene_id = rownames(.)) %>% pivot_longer(colnames(test_anot[c(2,3)]), names_to = "name", values_to = "TPM")
+  left_join(outdf, ref, by="gene_id") %>% select(-starts_with("V"))
+}
+
+
+combined_tpm <- NULL
+for(tech in unique(combined_htseq$is.fl)){
+  if(tech == "DRS"){
+    df <- get_tpm("LIC", tech)
+    df$data.type <- tech
+  }else{
+    df <- do.call(rbind,lapply(list("LIC", "LII", "LBP"), get_tpm, data_type = tech))
+    df$data.type <- tech
+  }
+  combined_tpm <- rbind(combined_tpm, df)
+}
+unique(combined_tpm$data.type)
+combined_tpm_cdna_raw <- combined_tpm %>% separate(name, into=c("strain","protocol", "ispolyA"), remove = FALSE) %>% subset(data.type == "raw") %>% select(-protocol) 
+combined_tpm_cdna_FL <- combined_tpm %>% separate(name, into=c("strain","protocol", "ispolyA"), remove = FALSE) %>% subset(data.type == "full-length") %>% select(-protocol) 
+```
+
+### plot dot plot
+```{r}
+combined_htseq %>% subset(gene_id == "WP_000800650.1")
+combined_tpm_cdna_raw %>% subset(gene_id == "WP_000800650.1")
+combined_tpm_cdna_FL %>% subset(gene_id == "WP_000800650.1")
+
+combined_tpm_w <- combined_tpm_cdna_raw %>% select(-c("data.type", "name")) %>% pivot_wider(names_from = "ispolyA", values_from = "TPM")%>% group_by(strain) %>% mutate(high_cov_cut_nonpolyA  = (max(nonpolyA))*0.7)%>% mutate(high_cov_cut_polyA  = max(polyA)*0.7)%>% mutate(label = mapply(function(x,y,i,j,k,c){
+  ifelse((x > i |  y > j) & k != "hypothetical protein", k,ifelse(k == "hypothetical protein", c, ""))
+},nonpolyA, polyA, high_cov_cut_nonpolyA, high_cov_cut_polyA, gene_name, gene_id))
+
+combined_tpm_w$strain <- factor(combined_tpm_w$strain, levels = c("LIC", "LII",  "LBP"))
+
+combined_tpm_w %>% subset(nonpolyA != 0 & polyA == 0) %>% subset(gene_name != "hypothetical protein") #%>% group_by(gene_name) %>% summarise(count = n()) %>% arrange(desc(count))
+
+############ dataframe for R^2 values ########################################################################
+
+lm_eqn<- function(df) {
+  m = lm(log2(nonpolyA) ~ log2(polyA), df);
+  as.character(
+    as.expression(
+      substitute(~~italic(r)^2~"="~r2,
+                list(
+                r2 = format(summary(m)$r.squared, digits = 3)))
+    )
+  )
+}
+
+eqns <- by(combined_tpm_w, combined_tpm_w[,c("strain")], lm_eqn)
+df2 <- data.frame(strain=rownames(data.frame(unclass(eqns))), raw = data.frame(unclass(eqns))[,1]) 
+df2$strain <- factor(df2$strain, levels = c("LIC", "LII",  "LBP"))
+x_pos <- combined_tpm_w  %>% group_by(strain) %>% summarise(xpos= max(log2(polyA))*0.5) 
+df2 <- left_join(df2, x_pos)
+y_pos <- combined_tpm_w %>% group_by(strain) %>% summarise(ypos= max(log2(nonpolyA))*0.9)
+df2 <- left_join(df2, y_pos)
+
+df2$strain <- factor(df2$strain, levels =c("LIC", "LII",  "LBP"))
+############################################################################################################
+
+library(ggrepel)
+
+combined_tpm_w[grepl("DUF3015",combined_tpm_w$label) & combined_tpm_w$strain == "LII" & combined_tpm_w$gene_id =="WP_000732920.1", "label"] <- ""
+p <- ggplot(combined_tpm_w, aes(x=log2(polyA), y = log2(nonpolyA), label=label))+
+  geom_point(aes(color=geneLen))+
+  geom_smooth(stat="smooth",method = "lm", formula= y~x, se=TRUE, size=1,alpha=0.7, color="blue", level=0.95)+
+  geom_text_repel(color="black", size=2)+
+  facet_wrap(~strain, scales = "free", ncol=2)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(x="Log2 CDS coverages (TPM) in polyadenylated sample",y="Log2 CDS coverages (TPM) in non-polyadenylated sample")+
+  scale_color_gradientn(colors =c("darkred", "orange", "#FEBF6E", "yellow", "white"))+
+    geom_text(data = df2 , aes(x = xpos, y = ypos, label = raw), 
+          color = 'blue', size=3, parse = TRUE)
+p
+
+combined_tpm_w %>% subset(nonpolyA == 0 & polyA != 0) %>% group_by(strain) %>% summarise(n_distinct(gene_id))
+combined_tpm_w %>% subset(gene_id == "WP_000426853.1")
+ggsave(file.path(fig_path, "map", "polyA_nonpolyA_most_mapped_gene_intersect_TPM.tiff"), p,dpi=500, width = 9, height = 8)
+# ggsave(file.path(fig_path, "map", "polyA_nonpolyA_most_mapped_gene_intersect_TPM_FL.tiff"), p,dpi=500, width = 9, height = 8)
+
+# t <- ggplot(combined_tpm_w %>% subset(strain == "LII")  , aes(x=log2(polyA), y = log2(nonpolyA), label=gene_name))+
+#   geom_point()+
+#   geom_smooth(method = "lm", level = 0.99, se = TRUE)+
+#   geom_text_repel()+
+#   scale_x_continuous(limits = c(0,16))
+# t
+# library(plotly)
+# ggplotly(t)
+```
+
+
+### Are LIC transcripts sequenced with cDNA (polyA and nonpolyA) and DRS correlate?
+```{r}
+
+LIC_htseq <- combined_tpm %>% subset(grepl("LIC", name)) %>% subset(data.type %in% c("raw", "DRS"))
+
+# mapped_trans_all_LIC <- mapped_trans_all_LIC[!is.na(rowSums(mapped_trans_all_LIC[,c(5,6,7,8)])),] 
+
+## this is edited based on script from this website:https://r-coder.com/correlation-plot-r/
+panel.cor <- function(x, y, digits = 3, prefix = "", cex.cor, ...) {
+    usr <- par("usr")
+    on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    Cor <- summary(lm(y~ x))$r.squared # Remove abs function if desired
+    txt <- paste0(prefix, format(Cor, digits = digits))
+    if(missing(cex.cor)) {
+        cex.cor <- 0.4 / strwidth(txt)
+    }
+    text(0.5, 0.5, txt,
+         cex = 1 + cex.cor * Cor) # Resize the text by level of correlation
+}
+
+
+panel.smooth <- function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 1, col.smooth = 2, span = 2/3, iter = 3, ...) 
+{
+    points(x, y, pch = pch, col = col, bg = bg, cex = cex)
+    ok <- is.finite(x) & is.finite(y)
+    if (any(ok)) abline(lm(y ~ x), col="red")
+}
+
+library(tibble)
+tpm.mat <- LIC_htseq %>% select(name, gene_id, TPM) %>% mutate(TPM = log2(TPM))%>% pivot_wider(names_from = "name", values_from = "TPM") %>% column_to_rownames("gene_id") %>% as.matrix()
+
+tiff(file.path(fig_path, "map", "LIC_cDNA_v_DRS_coverage_correlation_matrix_TPM.tiff"), res = 300, height = 2000, width = 2000)
+pairs(tpm.mat, 
+      upper.panel = "panel.cor",
+      lower.panel = "panel.smooth")
+dev.off()
+
+```
+### Most highly mapped genes (non-rRNA)
+```{r}
+
+gene_map_summary <- combined_tpm %>% separate(name, into=c("strain","protocol", "ispolyA"), remove = FALSE) %>% group_by(data.type, strain, ispolyA, gene_name, name,protocol) %>% summarise(count = sum(TPM)) %>% arrange(desc(count))
+
+gene_map_summary%>% subset(gene_name == "Hsp20/alpha crystallin family protein")
+ 
+top_50_mapped <- gene_map_summary %>% subset(gene_name != "hypothetical protein" & count != 0) %>% group_by(data.type,  name) %>% filter(!is.na(count)) %>% slice_max(n = 50, order_by = count)
+
+unique(top_50_mapped$data.type)
+top_50_mapped_df <- top_50_mapped %>% subset(data.type %in% c("DRS", "raw")) %>% ungroup() %>% select(name, gene_name, count)%>% group_by(name) %>% arrange(desc(count), .by_group = TRUE)
+# write.csv(top_50_mapped_df, file.path(table_path, "TableS1.top50_most_highly_mapped_CDS.csv"), quote = FALSE, row.names = FALSE)
+```
+
+```{r}
+
+
+library(UpSetR)
+library(ComplexHeatmap)
+
+x <- "LIM-cDNA-nonpolyA"
+
+y <- "raw"
+
+df_to_list <- function(x, y){
+  gene_list <- top_50_mapped %>% ungroup() %>% subset(name == x &data.type %in% c(y, "DRS")) %>% select(gene_name) %>% unlist()
+  as.vector(gene_list)
+}
+
+
+raw_top50_list <- lapply(unique(top_50_mapped$name), df_to_list, y = "raw")
+FL_top50_list <- lapply(unique(top_50_mapped$name), df_to_list, y = "full-length")
+
+names(raw_top50_list) <- unique(top_50_mapped$name)
+names(FL_top50_list) <- unique(top_50_mapped$name)
+
+# top50_mtx <-  make_comb_mat(raw_top50_list, mode = "distinct")
+# 
+# top50_mtx
+# 
+# m <- top50_mtx[comb_degree(top50_mtx) > 1]
+# comb_size(m)
+# 
+# comb_df <- comb_size(m) %>% as.data.frame() 
+# colnames(comb_df) <- "intersection_size"
+# # LIC-DRS-nonpolyA-R1, LIC-DRS-nonpolyA-R2, LBP-cDNA-nonpolyA, LBP-cDNA-polyA, LIC-cDNA-nonpolyA, LIC-cDNA-polyA, LII-cDNA-nonpolyA, LII-cDNA-polyA, LIM-cDNA-nonpolyA, LIM-cDNA-polyA
+# comb_df <- comb_df %>% arrange(desc(intersection_size)) %>% tibble::rownames_to_column()
+# comb_df
+# comb_df %>% subset(rowname == "0011111111")
+# 
+# tiff(file.path(fig_path, "map", "top50_FL_mostSequenced_intersect_UpSet.tiff"), res = 500, width = 2000, height = 1000)
+#  UpSet(m, right_annotation = NULL,comb_order =order(comb_size(m)))
+# dev.off()
+
+
+
+Reduce(intersect, raw_top50_list)
+Reduce(intersect, FL_top50_list)
+
+Reduce(intersect, raw_top50_list[names(raw_top50_list) %in% c("LBP-cDNA-nonpolyA", "LBP-cDNA-polyA")])
+Reduce(intersect, FL_top50_list[!names(FL_top50_list) %in% c("LBP-cDNA-nonpolyA", "LBP-cDNA-polyA")])
+
+
+Reduce(intersect, raw_top50_list[names(raw_top50_list) %in% c("LBP-cDNA-nonpolyA", "LIC-cDNA-nonpolyA","LII-cDNA-nonpolyA","LIM-cDNA-nonpolyA")])
+Reduce(intersect, raw_top50_list[!names(raw_top50_list) %in% c("LBP-cDNA-nonpolyA", "LIC-cDNA-nonpolyA","LII-cDNA-nonpolyA","LIM-cDNA-nonpolyA")])
+
+Reduce(intersect, raw_top50_list[names(raw_top50_list) %in% c("LIC-cDNA-nonpolyA","LIC-cDNA-polyA","LIC-DRS-nonpolyA-R1","LIC-DRS-nonpolyA-R2")])
+ggvenn::ggvenn(raw_top50_list[names(raw_top50_list) %in% c("LIC-cDNA-nonpolyA","LIC-cDNA-polyA","LIC-DRS-nonpolyA-R1","LIC-DRS-nonpolyA-R2")])
+
+################# frequency of different genes present in top 50 set
+top_mapped_gene_freq <- list_to_matrix(raw_top50_list) %>% as.data.frame() %>% subset(rowSums(.) > 1) %>% rownames_to_column()%>% pivot_longer(colnames(.)[-1], names_to = "samples", values_to = "present") %>% separate(samples, into = c("strain", "protocol", "polyA"))%>% group_by(rowname) %>% summarise(num_occur = sum(present)) %>% arrange(desc(num_occur))
+
+top_mapped_gene_freq
+
+top_50_mapped %>% subset(gene_name == "tetratricopeptide repeat protein" & data.type != "full-length") %>% group_by(data.type, name) %>% summarise(n())
+##############################
+```
+
+
+
+
+
+# for the top 50 most oppositely mapped genes, how many samples they were identified in?
+```{r}
+most_opposite_map_genes_top50 <- most_opposite_map_genes %>% group_by(name) %>% slice_max(count, n =50)
+top50_opposite_genes <- most_opposite_map_genes_top50 %>% select(-c(map_position,is.fl, count)) %>% distinct() %>% group_by(gene_name) %>% summarise(in_num_samples = n()) %>% arrange(desc(in_num_samples))
+
+
+top50_opposite_genes
+most_opposite_map_genes_top50 %>% subset(
+gene_name == "M23 family metallopeptidase") #%>% select(name) %>% unique()
+```
+
+
+
+
+```{r}
+
+summary <- combine_raw_filter %>% subset(!grepl("operon", map_position))%>% group_by(name, gene_mapped, map_strandness, is.fl) %>% summarise(avg_map_identity = mean(map_identity), avg_map_len=mean(align_len), num_unique_gene=n_distinct(gene_mapped)) %>% group_by(name, map_strandness, is.fl) %>% summarise(mean_map_identity = mean(avg_map_identity), mean_map_len=mean(avg_map_len), num_unique_gene=n_distinct(gene_mapped))
+summary
+
+ggplot(summary, aes(x=name, y=num_unique_gene, fill=map_strandness))+
+  geom_bar(stat="identity", position = "dodge")+
+  theme_bw()+
+  facet_wrap(~is.fl)+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Number of unique gene mapped", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[4:5])
+
+ggsave(file.path(fig_path, "map", "full_length_read_unique_gene_mapped.tiff"))
+
+max_read_map <- combine_raw_filter %>% group_by(name, gene_mapped) %>% slice_max(align_len, n = 1)%>% arrange(desc(align_len)) %>% group_by(name)  %>% summarise(avg_max_map_read_len=mean(align_len))
+max_read_map
+```
+
+
+
+```{r}
+cds_opposite <- combine_raw_filter %>% subset(is.fl == "full-length")%>%
+  subset(map_strandness == "opposite" & biotype == "CDS") %>% group_by(name) %>% mutate(total = n()) %>% group_by(name, map_position) %>% summarise(count = n(), percent = n()/total*100) %>% distinct() %>% pivot_longer(cols = c("count", "percent"), names_to = "stats", values_to = "value")
+
+
+pp<- ggplot(cds_opposite, aes(x = name, y=value,fill=map_position))+
+  geom_bar(stat="identity")+
+  facet_wrap(~stats, scales = "free_y")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Count/percentage of full-length opposite mapped reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[1:7])
+pp
+ggsave(file.path(fig_path, "map", "full_length_reads_CDSmap_positions.tiff"),pp, dpi=500, width = 9, height = 7)
+```
+# Overall read map postion same strand vs. opposite
+```{r}
+
+map_pos_df <- stat_df_all%>% subset(map_strandness != "both") %>% mutate(map_position = sapply(map_position, function(x){
+  unlist(strsplit(x, "|", fixed=TRUE))[1]
+})) %>% group_by(name, map_strandness) %>% mutate(total_reads=n())%>% group_by(name, map_position, map_strandness) %>% summarise(number.read.mapped=n(), percent.read.mapped=n()/total_reads*100) %>% distinct() %>% pivot_longer(cols = c("number.read.mapped", "percent.read.mapped"), names_to = "stats", values_to = "values")
+
+ggplot(map_pos_df, aes(x=name, y=values,fill=map_position))+
+  geom_bar(stat = "identity")+
+  facet_wrap(stats~map_strandness, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Count/percentage of full-length reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[1:10])
+
+ggsave(file.path(fig_path, "map", "map_position_full_length_reads.tiff"), dpi=500, height = 10, width = 8.5)
+```
+
+# For reads mapped to the same strand, position map to different biotypes
+```{r}
+map_pos_df <- stat_df_all%>% subset(map_strandness == "same") %>% subset(!grepl("operon", map_position)) %>% group_by(name, biotype) %>% mutate(total_reads=n())%>% group_by(name, map_position,biotype) %>% summarise(number.read.mapped=n(), percent.read.mapped=n()/total_reads*100) %>% distinct() %>% pivot_longer(cols = c("number.read.mapped", "percent.read.mapped"), names_to = "stats", values_to = "values") %>% mutate(biotype = ifelse(biotype == "CDS", "mRNA", biotype))
+
+ggplot(map_pos_df %>% subset(biotype %in% c("mRNA", "rRNA")) , aes(x=name, y=values,fill=map_position))+
+  geom_bar(stat = "identity")+
+  facet_wrap(biotype~stats, scales = "free_y")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Number of reads", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[c(1:3,5:6)])
+ggsave(file.path(fig_path, "map", "map_position_vs_biotypes_full_length_reads.tiff"), dpi=500, height =8, width = 8)
+
+```
+
+# unannotated genomic regions
+```{r}
+
+# 1) get noncoding regions
+# noncode_reads <- combine_raw_filter %>% subset(map_position == "noncoding")
+# 
+# noncode_reads_summary <- noncode_reads %>% group_by( name, is.fl, chrom,map_strand,gene_mapped, map_strandness, gene_name) %>% summarise(num_read=n(), min_map_start = min(map_start), max_map_end=max(map_end)) 
+# 
+# 
+# write.table(noncode_reads_summary, file.path(table_path, "noncoding_reads_genomic_positions.tab"), sep="\t", quote = FALSE, row.names = FALSE)
+# unique(noncode_reads_summary$is.fl)
+
+# 2) find before and after CDS (on cluster python script)
+noncode_reads_summary <- read.csv(file.path(table_path, "noncoding_reads_genomic_positions_anot.tab"), sep = "\t", header = FALSE, col.names = c("name", "is.fl", "chrom", "map_strand", "gene_mapped", "map_strandness", "gene_name", "num_read", "min_map_start", "max_map_end", "before_gene_id", "before_gene_strand", "before_gene_name", "after_gene_id", "after_gene_strand", "after_gene_name"))%>% separate(name, into = c("strain", "protocol", "is.polyA", "replicates"), remove = FALSE) %>% mutate(region_anot = paste(before_gene_name, after_gene_name, sep="|"),region_id= paste(before_gene_id, after_gene_id, sep="|") ) 
+
+```
+
+### distinct unannotated coding regios across serovars
+```{r}
+# distinct unannotated coding region
+dsitinct_neighbors_ids <- noncode_reads_summary %>% group_by(name,is.fl,region_id, region_anot) %>% summarise(n_read = sum(num_read)) %>% subset(n_read > 1)
+n_distinct(dsitinct_neighbors_ids$region_id)
+n_distinct(dsitinct_neighbors_ids$region_anot)
+
+get_distinct_anot <- function(x){
+  noncode_reads_summary  %>% group_by(name, is.fl,region_id, region_anot) %>% mutate(n_read=sum(num_read)) %>% subset(n_read > 1)%>% ungroup() %>% subset(strain == x) %>% select(region_anot)  %>% unlist() %>% unname() %>% unique()
+}
+x <- "LIC"
+unique_ncrna_ls <- lapply(c("LIC", "LII",  "LBP"), get_distinct_anot)
+names(unique_ncrna_ls) <- c("LIC", "LII",  "LBP")
+length(unique_ncrna_ls$LIC)
+# library(ComplexHeatmap)
+# unique_ncrna_m <-  make_comb_mat(unique_ncrna_ls, mode = "intersect")
+# 
+# unique_ncrna_m
+# m <- unique_ncrna_m#[comb_degree(unique_ncrna_m) > 1]
+# comb_size(m)
+# 
+# tiff(file.path(fig_path, "unannotate", "unique_ncRNA_intersect_UpSet.tiff"), res = 300, width = 2000, height = 1000)
+#  UpSet(m, right_annotation = NULL)
+# dev.off()
+
+gv <- ggvenn::ggvenn(unique_ncrna_ls)
+ggsave(file.path(fig_path, "unannotate", "unique_ncRNA_intersect_Venn.tiff"), gv, dpi=500 )
+```
+
+### distinct unannotated coding region in each sample
+```{r}
+num_distinct_in_sample <- noncode_reads_summary %>% group_by(name,is.fl,region_id, region_anot) %>%mutate(n_read = sum(num_read)) %>% subset(n_read > 1) %>% group_by(name, strain, is.polyA,protocol ) %>% summarise(num_distinct_unannotated = n_distinct(region_id)) %>% subset(strain != "LIM")
+
+num_distinct_in_sample$strain <- factor(num_distinct_in_sample$strain, levels = c("LIC", "LII", "LIM", "LBP"))
+ggplot(num_distinct_in_sample, aes(x = name, y = num_distinct_unannotated, fill=protocol))+
+  geom_bar(stat="identity")+
+  facet_wrap(~strain, scales = "free_x", ncol = 2)+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.95,vjust=0.2), axis.text = element_text(size=12), legend.title = element_text(size=12), legend.text = element_text(size=12), axis.title = element_text(size=12), strip.text = element_text(size = 12))+
+  scale_y_continuous(label=comma)+
+  labs(y="Number of distinct unnanotated coding regions identified", x="Samples")+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Paired")[c(1,3,2)])
+ggsave(file.path(fig_path, "unannotate", "number_distinct_unannotated.tiff"), dpi=500, height =8, width = 6)
+```
+
+### most frequently identified neigboring genes of the unannotated coding regions
+```{r}
+noncode_reads_abr <- noncode_reads_summary  %>% group_by(before_gene_name, after_gene_name) %>% summarise(num_occur = n(), num_samples = n_distinct(name), n_strain = n_distinct(strain), n_protocol = n_distinct(protocol), n_type_data = n_distinct(is.fl),cov=mean(num_read)/n_distinct(name)) %>% arrange(desc(num_samples))  %>% arrange(desc(cov))
+noncode_reads_abr
+table(c(noncode_reads_abr$before_gene_name, noncode_reads_abr$after_gene_name)) %>% as.data.frame() %>% arrange(desc(Freq))
+
+noncode_reads_abr %>% mutate(is.related = mapply(function(x,y){
+  if(grepl("IS110", x) | grepl("IS110", y)){
+    "yes"
+  }else{
+    "why"
+  }
+}, before_gene_name, after_gene_name)) %>% subset(is.related == "yes")
+
+t <- noncode_reads_summary %>% subset(before_gene_name == "23S ribosomal RNA" & after_gene_name == "GNAT family N-acetyltransferase")
+# which sample is the noncoding region present in
+t <- noncode_reads_summary %>% subset(before_gene_name == "23S ribosomal RNA") %>% arrange(desc(num_read))
+unique(t$name)
+```
+
+### annotated unannotated coding regions
+```{r}
+# Rfam anot unannotated regions
+Rfam_tbl <- read.csv(file.path(main_path, "1.reports", "Rfam_rna", "Rfam_output.tab"), sep="\t") %>%distinct(query.name, .keep_all = TRUE) 
+unique(Rfam_tbl$query.name)
+noncode_reads_summary.1 <- noncode_reads_summary %>% mutate(query.name = paste0(chrom,":", min_map_start, "-",  max_map_end, " -"))
+noncode_reads_summary.2 <- left_join(noncode_reads_summary.1, Rfam_tbl, by = "query.name")
+
+# we want to show all unique annotated coding regions based on their neigboring genes, but also remove those reported in a single sample and a single strand, from a single type of data with only one read
+noncode_reads_summary.3 <- noncode_reads_summary.2 %>% subset(region_id %in% unique(dsitinct_neighbors_ids$region_id)) %>% group_by(name, is.fl,region_id, region_anot) %>% mutate(n_read=sum(num_read)) %>% subset(n_read > 1) # dsitinct_neighbors_ids from "distinct unannotated coding regios across serovars" block
+
+n_distinct(noncode_reads_summary.3$region_id)
+
+write.csv(noncode_reads_summary.3, file.path(table_path, "TableS2.unannotated_coding_regions.csv"), quote = FALSE, row.names = FALSE)
+anot_noncode <- noncode_reads_summary.2 %>% subset(!is.na(accession)) %>% subset(description.of.target == "Leptospira sRNA 30_292") #%>% select(before_gene_name, after_gene_name, description.of.target,num_read)
+```
+
+
+# operon
+
+### Number of genes in operons
+```{r}
+
+operon_df <- combine_raw_filter %>% mutate(is.operon = ifelse(grepl("operon", map_position), "yes", "no")) %>% subset(strain != "LIM")
+
+unique(operon_df$strain)
+
+operon_df %>% group_by(is.polyA, is.fl) %>% mutate(total = n()) %>% group_by(is.operon, is.fl,is.polyA) %>% summarise(count=n(), percentage = (n()/total)*100) %>% distinct()
+
+operonOnly_df <- operon_df %>% subset(is.longgap == "no") %>% subset(is.operon == "yes") %>% mutate(num_genes = sapply(map_position, function(x){(unlist(strsplit(x, "|", fixed=TRUE))[2])})) %>% mutate(gene_span_size = mapply(function(x,y){
+  s <- unlist(strsplit(x, "|", fixed = TRUE))
+  e <- unlist(strsplit(y, "|", fixed = TRUE))
+ max(as.numeric(e)) - min(as.numeric(s))
+  }, gene_start, gene_end))%>%
+  mutate(proportion_aligned = align_len/gene_span_size) 
+
+colnames(operonOnly_df)
+summary_operon_df <- operonOnly_df %>% group_by(chrom, name, is.fl) %>% arrange(map_start, .by_group = TRUE) %>% group_by( name, strain, cDNA,is.polyA,is.fl, chrom, gene_mapped, gene_strand, biotype, transcript_id, gene_name, num_genes)  %>% summarise(num_reads = n())
+write.csv(summary_operon_df, file.path(table_path, "TableS3.operon_structures.csv"), row.names = FALSE, quote = FALSE)
+
+operonOnly_df %>% group_by( is.polyA, is.fl) %>% mutate(total = n()) %>% group_by(is.longgap, is.polyA, is.fl) %>% summarise(count=n(),percentage = n()/total, mean(len_Ngap)) %>% distinct()
+
+```
+
+### visualization
+- operon structures containing "flagellar basal-body rod protein FlgG|flagellar basal body P-ring formation chaperone FlgA" in LIC-cDNA-polyA
+- this operon is almost explictly identified in LIC, with only a few reads identified in LII and LIM.
+```{r}
+flagA_reads <- combine_raw_filter %>% subset(grepl("flagellar basal body P-ring formation chaperone FlgA", gene_name)) %>% subset(strain == "LIC" & is.longgap == "no") %>% 
+  mutate(num_genes = sapply(map_position, function(x){
+    s <- (unlist(strsplit(x, "|", fixed=TRUE))[2])
+    if(is.na(s)){
+      1
+    }else{
+      s
+    }
+}))  %>% arrange(desc(map_end))
+min(flagA_reads$map_start)
+
+# number of reads identified for operon containing different number of genes (flagA operons)
+flagA.gene.comp.df <- flagA_reads %>% group_by(name, is.fl) %>% mutate(total_num_reads = n()) %>% group_by(name, is.fl,total_num_reads, num_genes) %>% summarise(num_reads_cat = n(), percentage = n()/total_num_reads) %>% distinct()
+
+ggplot(flagA.gene.comp.df, aes(x= 0,  y = num_reads_cat,fill= `num_genes`)) +
+geom_bar(position=position_fill(), stat = "identity") +
+  scale_x_discrete(expand = c(0,0)) +
+  coord_polar("y")+
+  facet_wrap(is.fl~name, ncol=4)+
+  theme_minimal()+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Set2"))+
+  theme(axis.text=element_blank(), axis.title = element_blank())
+
+# ggsave(file.path(fig_path, "IGV", "pie_chart_number_genes_flagellar_operon.tiff"), dpi=500)
+
+
+# write.table(flagA_reads %>% select(readid),file.path(table_path, "flagellar_operon_reads_LIC-cDNA-polyA.txt"), quote = FALSE, row.names = FALSE, sep = "\n")
+
+library(ggbio)
+library(GenomicRanges)
+
+ref <-  GRanges(seqnames = c("LIC_RS06795", "LIC_RS06800", "LIC_RS06805","LIC_RS06810", "LIC_RS06815"),ranges = IRanges(start = c(1635271,1636084,1636971,1637969,1639066), end = c(1636065,1636974,1637972,1639069,1639539), strand = c("+","+","+","+","+")), names = "Leptospira interrogans serovar Copenhageni str. Fiocruz L1-130 chromosome I",gene_names = c("flgG", "flgA", "flgH", "flgI", "LIC_RS06815"),chrom = "hello")
+
+ref_track <- autoplot(ref, layout ="linear", geom= "alignment")+
+  geom_alignment(fill="lightblue", color="black")+
+  facet_wrap(~ names,ncol= 1, scales = "free_y",strip.position="bottom") +
+  geom_text(aes(x = start +  (end - start)/2 , y = 1, label = gene_names))+
+  theme_bw()+
+  theme(axis.text = element_text(size=14), strip.text = element_text(size=12), axis.title = element_text(size=12), legend.text = element_text(size = 12), legend.title = element_text(size=12))
+
+gr <- GRanges(seqnames = as.character(flagA_reads$name), readsid=flagA_reads$readid,sample = as.character(flagA_reads$name), ranges = IRanges(start = flagA_reads$map_start, end = flagA_reads$map_end), dataset = flagA_reads$is.fl , is.polyA = flagA_reads$is.polyA, strand = flagA_reads$map_strand, number.genes = flagA_reads$num_genes, map_strandness = flagA_reads$map_strand)
+
+gr <- sort(gr, by= ~ seqnames + end)
+is.unsorted(gr)
+read_track <- autoplot(gr, aes(fill=dataset))+
+  facet_wrap(sample ~ dataset, scales = "free_y",ncol= 1, strip.position="right") +
+  theme_bw()+
+  theme(axis.text = element_text(size=14), strip.text = element_text(size=12), axis.title = element_text(size=12), legend.text = element_text(size = 12), legend.title = element_text(size=12))+
+  scale_fill_manual(values = RColorBrewer::brewer.pal(10, "Dark2")[c(5,7,9)])
+
+combined_track <- tracks(read_track , ref_track, heights = c(6, 1))
+
+combined_track
+```
+
+## size of operons in each sample
+```{r}
+
+operonOnly_df.1 <- operonOnly_df %>% subset(is.fl %in% c("raw")) %>% mutate(`num.genes(x)` = sapply(num_genes, function(y){
+  x <- as.numeric(y)
+  case_when(
+    x == 2  ~ "x == 2",
+    x > 2 & x <= 5 ~ "2 < x <= 5",
+    x > 5 & x <= 10 ~ "5 < x <= 10",
+    x > 10 ~ "x > 10",
+    TRUE ~ "NA"
+  )
+})) %>% group_by(name, `num.genes(x)`) %>% summarise(n = n(), nd = n_distinct(gene_mapped)) %>% mutate(label = paste0(n, " (",nd, ")"))
+
+operonOnly_df.2 <- operonOnly_df.1 %>% group_by(name)%>% 
+  arrange(desc(n)) %>%
+  mutate(prop = n / sum(n)) %>%
+  mutate(ypos = cumsum(prop)- 0.7*prop )
+
+
+operonOnly_df.2 <- operonOnly_df.2 %>% separate(name, into = c("strain", "cDNA", "is.polyA", "replicates"), remove = FALSE) 
+
+operonOnly_df.2$`num.genes(x)`<- factor(operonOnly_df.2$`num.genes(x)`, levels=c("x == 2", "2 < x <= 5", "5 < x <= 10" , "x > 10"))
+
+
+operonOnly_df.2$name <- factor(operonOnly_df.2$name, levels=c("LIC-DRS-nonpolyA-R1", "LIC-DRS-nonpolyA-R2","LIC-cDNA-nonpolyA", "LIC-cDNA-polyA", "LII-cDNA-nonpolyA","LII-cDNA-polyA","LIM-cDNA-nonpolyA","LIM-cDNA-polyA","LBP-cDNA-nonpolyA","LBP-cDNA-polyA"))
+
+operonOnly_df.2$is.polyA <- factor(operonOnly_df.2$is.polyA, levels=c("polyA", "nonpolyA"))
+
+ggplot(operonOnly_df.2, aes(x= 0,  y = n,fill= `num.genes(x)`)) +
+geom_bar(position=position_fill(), stat = "identity") +
+  scale_x_discrete(expand = c(0,0)) +
+  coord_polar("y")+
+  facet_wrap(name~is.polyA, ncol=4)+
+  theme_minimal()+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(12, "Set2"))+
+  theme(axis.text=element_blank(), axis.title = element_blank())#+
+geom_text(aes(x=0,y = ypos, label = label), color = "black", size=3)
+
+
+ggsave(file.path(fig_path, "map", "num_genes_in_operons_pie_chart_FL.tiff"), dpi=500, height =8, width = 8)
+
+operonOnly_df.2 %>% group_by(`num.genes(x)`,cDNA) %>% summarise(mean(prop))
+```
+
+## explore operon statistics
+```{r}
+operonOnly_df.2 %>% group_by(name) %>% mutate(total = sum(n)) %>% group_by(`num.genes(x)`, name) %>% summarise(count = sum(n), percentage = (sum(n)/total)*100)
+
+operonOnly_df%>% subset(is.fl %in% c("raw", "DRS", "full-length")) %>% subset(is.longgap == "no")  %>% group_by(gene_name) %>% summarise(n=n(), nd = n_distinct(name)) %>% arrange(desc(nd)) #%>% subset(name == "LIC-DRS-nonpolyA-R1")
+
+operonOnly_df_detail <- operonOnly_df %>% subset(is.fl %in% c("raw","full-length","DRS")) %>% subset(is.longgap == "no") %>% mutate(`num.genes(x)` = sapply(num_genes, function(y){
+  x <- as.numeric(y)
+  case_when(
+    x == 2  ~ "x == 2",
+    x > 2 & x <= 5 ~ "2 < x <= 5",
+    x > 5 & x <= 10 ~ "5 < x <= 10",
+    x > 10 ~ "x > 10",
+    TRUE ~ "NA"
+  )
+})) %>% separate(name, into = c("strain", "seq", "polyA"), remove = FALSE)
+
+t1 <- operonOnly_df_detail  %>% group_by(gene_name) %>% summarise(n_sample = n_distinct(name), n_strain=n_distinct(strain), n_polya=n_distinct(polyA), n_type_data = n_distinct(is.fl), avg_cov = n()/n_distinct(name))%>% arrange(desc(n_strain), desc(avg_cov))
+t1 #%>% group_by(n_strain)  %>% summarise(n()) 
+operonOnly_df_detail %>%ungroup() %>% arrange(desc(as.numeric(num_genes)))
+operonOnly_df_detail %>% subset(grepl("flagellar basal-body rod protein FlgG|flagellar basal body P-ring formation chaperone FlgA", gene_name)) %>% select(name) %>% distinct() %>% unlist() %>% unname()
+operonOnly_df_detail %>% subset(num_genes == 14) %>% select(gene_name) %>% unlist() %>% unname()
+```
+
+
+```{r}
+library(ComplexHeatmap)
+get_strain_operon <- function(str){
+  operonOnly_df_detail %>% subset(strain == str) %>% select(gene_name) %>% distinct() %>% unlist() %>% unname()
+}
+
+
+all_strain_operons <- lapply(list("LIC", "LII",  "LBP"), get_strain_operon)
+names(all_strain_operons) <- c("LIC", "LII",  "LBP")
+
+# all_strain_operons_m <-  make_comb_mat(all_strain_operons, mode = "intersect")
+# 
+# all_strain_operons_m
+# m <- all_strain_operons_m#[comb_degree(all_strain_operons_m) > 1]
+# comb_size(m)
+# 
+# tiff(file.path(fig_path, "map", "strain_specific_operon_intersect_UpSet.tiff"), res = 300, width = 2000, height = 1000)
+#  UpSet(m, right_annotation = NULL)
+# 
+# dev.off()
+
+gv1 <-  ggvenn::ggvenn(all_strain_operons)
+gv1
+ggsave(file.path(fig_path, "map", "strain_specific_operon_intersect_Venn.tiff"), gv1, dpi=500, height = 8, width = 7)
+#####################################################################################
+
+get_sample_operon <- function(n){
+  operonOnly_df_detail %>% subset(name == n) %>% select(gene_name) %>% distinct() %>% unlist() %>% unname()
+}
+
+
+all_sample_operons <- lapply(unique(operonOnly_df$name), get_sample_operon)
+names(all_sample_operons) <- unique(operonOnly_df$name)
+
+# all_sample_operons_m <-  make_comb_mat(all_sample_operons, mode = "intersect")
+# 
+# all_sample_operons_m
+# m <- all_sample_operons_m[comb_degree(all_sample_operons_m) > 5]
+# comb_size(m)
+# 
+# tiff(file.path(fig_path, "map", "sample_specific_operon_intersect_UpSet.tiff"), res = 300, width = 2000, height = 1000)
+#  UpSet(m, right_annotation = NULL)
+# dev.off()
+
+gv2 <-  ggvenn::ggvenn(all_sample_operons)
+gv2
+ggsave(file.path(fig_path, "map", "sample_specific_operon_intersect_Venn.tiff"), gv2, dpi=500, height = 8, width = 16)
+
+#####################################################
+type <- "full-length"
+unique(operonOnly_df_detail$is.fl)
+get_dataType_operon <- function(type){
+  operonOnly_df_detail %>% subset(is.fl == type) %>% select(gene_name) %>% distinct() %>% unlist() %>% unname()
+}
+
+all_type_operons <- lapply(list("raw", "full-length", "DRS"), get_dataType_operon)
+names(all_type_operons) <- c("raw-cDNA", "FL-cDNA", "DRS")
+
+all_type_operons_m <-  make_comb_mat(all_type_operons, mode = "intersect")
+
+all_type_operons_m
+m <- all_type_operons_m#[comb_degree(all_type_operons_m) > 1]
+comb_size(m)
+
+tiff(file.path(fig_path, "map", "data_type_specific_operon_intersect_UpSet.tiff"), res = 300, width = 2000, height = 1000)
+ UpSet(m, right_annotation = NULL, column_title="Test")
+dev.off()
+
+
+gv3 <-  ggvenn::ggvenn(all_type_operons)+
+  scale_fill_manual(values = c("purple", "darkgreen", "orange"))
+gv3
+ggsave(file.path(fig_path, "map", "data_type_specific_operon_intersect_Venn.tiff"), gv3, dpi=500, height = 8, width = 7)
+
+```
+
+### potential excludons
+```{r}
+operon_df %>% subset(len_Ngap == 0 & map_strandness == "both") %>% group_by(name) %>% summarise(n(), n_distinct(gene_mapped))
+operon_df %>% subset(len_Ngap == 0 & map_strandness == "both")  %>% separate(map_position , into=c("operon", "numGenes"))  %>% group_by(gene_name, name) %>% summarise(num_ocur = n()) %>% arrange(desc(num_ocur))
+
+operon_df %>% subset(grepl("operon", map_position) & is.longgap == "no")%>% subset(grepl("WP_000355585.1", transcript_id))
+
+operon_df %>% subset(gene_name == "TetR/AcrR family transcriptional regulator|tautomerase family protein")
+```
+
+
+
+# Motifs after 3' end Map position
+```{r}
+
+library("Biostrings")
+library(ggseqlogo)
+
+read_fasta <- function(x){
+pos_after_3 <- readDNAMultipleAlignment(x)
+
+pos_after_3_vector <- as.vector(pos_after_3@unmasked)
+}
+
+
+change_name <- function(x){switch(
+    unlist(strsplit(basename(x), "." , fixed=TRUE))[1],
+    LIC_NOPOLYA = "LIC-DRS-nonpolyA",
+    LIC_POLYA_DRNA_CDNA = "LIC-DRS-cDNA-polyA",
+    LIC_POLYA = "LIC-DRS-polyA",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail_Qiagen` = "LIC-cDNA-nonpolyA_Q",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIC-cDNA-nonpolyA",
+    `Copenhageni_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIC-cDNA-polyA",
+    `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LII-cDNA-nonpolyA",
+    `Icterohaemorrhagiae_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LII-cDNA-polyA",
+    `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_NoPolyATail` = "LIM-cDNA-nonpolyA",
+    `Mankarso_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LIM-cDNA-polyA",
+    `Patoc_Basecalled_Aug_16_2019_Direct-cDNA-NoPolyATail` = "LBP-cDNA-nonpolyA",
+    `Patoc_Basecalled_Aug_16_2019_Direct-cDNA_PolyATail` = "LBP-cDNA-polyA",
+    `Q29_Copenhageni_Basecalled_May_22_2020_Direct-RNA`="LIC-DRS-nonpolyA-R1",
+    `Q29_Copenhageni_Basecalled-June_11_2020_Repeat_Direct-RNA`="LIC-DRS-nonpolyA-R2",
+    ""
+)}
+
+
+before.files <- list.files("/Users/rx32940/Downloads/pos_around_mapend/",pattern = ".before.fasta" ,full.names = TRUE)
+after.files <- list.files("/Users/rx32940/Downloads/pos_around_mapend/",pattern = ".after.fasta" ,full.names = TRUE)
+
+
+
+before_ls <- lapply(before.files, read_fasta)
+before.files.names <- sapply(before.files, change_name)
+names(before_ls) <- before.files.names
+p1 <- ggseqlogo(before_ls[names(before_ls) != "LIC-cDNA-nonpolyA_Q" ], ncol = 2, scales = "free")+
+  labs(x="positions after 3' end mapping")
+ggsave(file.path(fig_path, "nucleotide_after_3prime_end_map.before.tiff"), p1, dpi = 500, width = 11, height = 7)
+
+
+after_ls <- lapply(after.files[-c(1,2)], read_fasta)
+after.files.names <- sapply(after.files, change_name)
+p2 <- ggseqlogo(after_ls[-c(1)], ncol = 2, scales = "free")+
+  labs(x="positions after 3' end mapping")
+ggsave(file.path(fig_path, "nucleotide_after_3prime_end_map.after.tiff"), p2, dpi = 500, width = 11, height = 7)
+
+
+before.CDS.files <- list.files("/Users/rx32940/Downloads/pos_around_CDS_mapend/",pattern = ".before.CDS.fasta" ,full.names = TRUE)
+after.CDS.files <- list.files("/Users/rx32940/Downloads/pos_around_mapend/",pattern = ".after.CDS.fasta" ,full.names = TRUE)
+
+
+before_ls <- lapply(before.CDS.files, read_fasta)
+before.files.names <- sapply(before.CDS.files, change_name)
+names(before_ls) <- before.files.names
+p3 <- ggseqlogo(before_ls, ncol = 2, scales = "free")+
+  labs(x="positions after 3' end mapping")
+ggsave(file.path(fig_path, "nucleotide_after_3prime_end_map.before.CDS.tiff"), p3, dpi = 500, width = 11, height = 7)
+
+
+```
+
+
+# reads mapped with VNP primers
+```{r}
+forward.files <- list.files(file.path(main_path, "1.reports", "pos_after_3end"), "*PolyATail.after.forward.fasta", full.names = TRUE)
+reverse.files <- list.files(file.path(main_path, "1.reports", "pos_after_3end"), "*PolyATail.after.reverse.fasta", full.names = TRUE)
+
+
+forward_ls <- lapply(forward.files, read_fasta)
+forward.files.names <- sapply(forward.files, change_name)
+names(forward_ls) <- forward.files.names
+
+reverse_ls <- lapply(reverse.files, read_fasta)
+reverse.files.names <- sapply(reverse.files, change_name)
+names(reverse_ls) <-reverse.files.names
+
+
+
+class(forward_ls)
+p1 <- ggseqlogo(forward_ls[-c(5,6)], ncol = 2, scales = "free")+
+  labs(x="positions after 3' end mapping")
+p1
+# ggsave(file.path(fig_path, "VNP", "nucleotide_after_3prime_end_map.forward.CDS.tiff"), p1, dpi = 500, width = 11, height = 7)
+
+
+p2 <- ggseqlogo(reverse_ls, ncol = 2, scales = "free")+
+  labs(x="positions after 3' end mapping")
+p2
+# ggsave(file.path(fig_path, "VNP", "nucleotide_after_3prime_end_map.reverse.CDS.tiff"), p2, dpi = 500, width = 11, height = 7)
+```
+
+```{r}
+
+library("Biostrings")
+
+
+
+forward.files <- list.files(file.path(main_path, "1.reports", "pos_before_3end"), "*PolyATail.before.forward.fasta", full.names = TRUE)
+reverse.files <- list.files(file.path(main_path, "1.reports", "pos_before_3end"), "*PolyATail.before.reverse.fasta", full.names = TRUE)
+
+
+forward_ls <- lapply(forward.files, read_fasta)
+length(forward_ls)
+forward.files.names <- sapply(forward.files, change_name)
+names(forward_ls) <- forward.files.names
+
+reverse_ls <- lapply(reverse.files, read_fasta)
+reverse.files.names <- sapply(reverse.files, change_name)
+names(reverse_ls) <-reverse.files.names
+
+
+library(ggseqlogo)
+
+class(forward_ls)
+p3 <- ggseqlogo(forward_ls, ncol = 2, scales = "free")+
+  labs(x="positions before 3' end mapping")
+p3
+ggsave(file.path(fig_path, "VNP", "nucleotide_before_3prime_end_map.forward.tiff"), p3, dpi = 500, width = 11, height = 7)
+
+
+p4 <- ggseqlogo(reverse_ls, ncol = 2, scales = "free")+
+  labs(x="positions before 3' end mapping")
+p4
+ggsave(file.path(fig_path, "VNP", "nucleotide_before_3prime_end_map.reverse.tiff"), p4, dpi = 500, width = 11, height = 7)
+```
+
